@@ -1,0 +1,18 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d",
+  "secrets": [
+    {
+      "name": "JWT_SECRET",
+      "description": "Secret key for signing JWT auth tokens",
+      "requiredAtBoot": true,
+      "generatedForDevelopment": true
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "description": "OpenAI API key for the AI resource creator and lesson plan generator. Get it from https://platform.openai.com/api-keys",
+      "requiredAtBoot": false
+    }
+  ]
+}

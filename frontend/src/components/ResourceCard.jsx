@@ -1,30 +1,35 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { getCategoryConfig } from '../categories.js';
 
-const categoryConfig = {
-  COMPUTING_LABELS: { label: 'Computing Labels', bgClass: 'bg-blue-50', badgeClass: 'bg-blue-100 text-blue-700', emoji: '💻' },
-  AUTUMN: { label: 'Autumn', bgClass: 'bg-orange-50', badgeClass: 'bg-orange-100 text-orange-700', emoji: '🍂' },
-  SPACE: { label: 'Space', bgClass: 'bg-purple-50', badgeClass: 'bg-purple-100 text-purple-700', emoji: '🚀' },
-  DISPLAY_RESOURCES: { label: 'Display Resources', bgClass: 'bg-emerald-50', badgeClass: 'bg-emerald-100 text-emerald-700', emoji: '🎨' },
+const typeLabels = {
+  LABELS: 'Labels',
+  BANNER: 'Banner',
+  DISPLAY: 'Display Pack',
+  FLASHCARDS: 'Flashcards',
+  WORKSHEET: 'Worksheet',
+  POSTER: 'Poster',
 };
 
 export default function ResourceCard({ resource }) {
-  const config = categoryConfig[resource.category] || { label: resource.category, bgClass: 'bg-gray-50', badgeClass: 'bg-gray-100 text-gray-700', emoji: '📄' };
+  const config = getCategoryConfig(resource.category);
 
   return (
-    <Link to={`/resource/${resource.id}`} className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100">
-      <div className={`${config.bgClass} p-6 flex items-center justify-center text-5xl`}>
-        {config.emoji}
+    <Link to={`/resource/${resource.id}`} className="group block bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-200 overflow-hidden border border-gray-100 hover:-translate-y-1">
+      <div className={`bg-gradient-to-br ${config.gradient} p-8 flex items-center justify-center relative overflow-hidden`}>
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+        <span className="text-5xl relative z-10 drop-shadow-lg">{config.emoji}</span>
       </div>
       <div className="p-4">
-        <span className={`inline-block text-xs font-medium px-2 py-1 rounded-full ${config.badgeClass} mb-2`}>
-          {config.label}
-        </span>
-        <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{resource.title}</h3>
-        <p className="text-sm text-gray-500 line-clamp-2">{resource.description}</p>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${config.badge}`}>{config.label}</span>
+          <span className="text-xs font-medium text-gray-400">{typeLabels[resource.type] || resource.type}</span>
+        </div>
+        <h3 className="font-bold text-gray-900 mb-1 leading-snug line-clamp-2">{resource.title}</h3>
+        <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed">{resource.description}</p>
         <div className="mt-3 flex items-center justify-between">
-          <span className="text-xs text-gray-400">{resource.type}</span>
-          <span className="text-xs text-brand-600 font-medium">View →</span>
+          <span className="text-xs text-gray-400">By {resource.author?.name || 'Rohan'}</span>
+          <span className="text-xs text-brand-600 font-semibold group-hover:translate-x-0.5 transition-transform">View & Download →</span>
         </div>
       </div>
     </Link>

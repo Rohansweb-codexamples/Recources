@@ -1,81 +1,99 @@
 import { Router } from 'express';
-import OpenAI from 'openai';
+import { generateResource } from '../generator.js';
 import { authMiddleware, requireAdmin, requireTeacherOrAdmin } from '../middleware.js';
 
 const router = Router();
 
-function getClient() {
-  if (!process.env.OPENAI_API_KEY) return null;
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-}
-
-// AI Resource Creator (admin only)
-router.post('/create-resource', authMiddleware, requireAdmin, async (req, res) => {
+// Built-in Resource Creator (admin only) — no external API needed
+router.post('/create-resource', authMiddleware, requireAdmin, (req, res) => {
   const { category, type, description } = req.body;
-  const client = getClient();
-  if (!client) return res.status(503).json({ error: 'AI service not configured. Set OPENAI_API_KEY in your secrets.' });
+  if (!category || !type) return res.status(400).json({ error: 'Category and type are required' });
 
   try {
-    const prompt = `Create an educational resource for a teaching resources website (like Twinkl).
-Category: ${category}
-Type: ${type}
-Description: ${description}
-
-Generate a JSON object with this structure:
-{
-  "title": "a catchy title",
-  "description": "a brief description",
-  "items": [
-    { "label": "short label text", "value": "description or explanation" }
-  ]
-}
-
-For banners, use: { "title": "...", "subtitle": "...", "decorations": ["emoji1 desc", ...], "message": "..." }
-Return ONLY valid JSON, no markdown.`;
-
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' }
-    });
-
-    const content = JSON.parse(response.choices[0].message.content);
-    res.json({ content });
+    const result = generateResource(category, type, description);
+    res.json({ content: result });
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate resource: ' + err.message });
   }
 });
 
-// AI Lesson Plan Creator (teacher/admin)
-router.post('/create-lesson-plan', authMiddleware, requireTeacherOrAdmin, async (req, res) => {
+// Built-in Lesson Plan Creator (teacher/admin) — no external API needed
+router.post('/create-lesson-plan', authMiddleware, requireTeacherOrAdmin, (req, res) => {
   const { subject, gradeLevel, topic, duration } = req.body;
-  const client = getClient();
-  if (!client) return res.status(503).json({ error: 'AI service not configured. Set OPENAI_API_KEY in your secrets.' });
+  if (!subject || !topic) return res.status(400).json({ error: 'Subject and topic are required' });
 
   try {
-    const prompt = `Create a detailed lesson plan for a teacher.
+    const dur = duration || '45 minutes';
+    const content = `LESSON PLAN
+============
+
 Subject: ${subject}
-Grade Level: ${gradeLevel}
+Grade Level: ${gradeLevel || 'KS1/KS2'}
 Topic: ${topic}
-Duration: ${duration || '45 minutes'}
+Duration: ${dur}
 
-Include these sections:
-- Learning Objectives
-- Materials Needed
-- Introduction / Hook
-- Main Activities (step by step)
-- Differentiation
-- Assessment
-- Plenary / Closing
+LEARNING OBJECTIVES
+-------------------
+- To understand key concepts related to ${topic}
+- To be able to describe and explain ${topic} in their own words
+- To apply their knowledge of ${topic} in a practical activity
+- To develop vocabulary related to ${topic}
 
-Format as structured text with clear headings.`;
+MATERIALS NEEDED
+----------------
+- Whiteboard and markers
+- Printed worksheets or activity sheets
+- ${topic} display materials and vocabulary cards
+- Pencils, coloured pencils, and paper
+- Any topic-specific resources or props
 
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }]
-    });
+INTRODUCTION / HOOK (10 minutes)
+--------------------------------
+1. Begin with a question to assess prior knowledge: "What do you know about ${topic}?"
+2. Show a picture or object related to ${topic} and ask children to describe what they see
+3. Share the learning objectives with the class
+4. Introduce key vocabulary for ${topic}
 
-    const content = response.choices[0].message.content;
+MAIN ACTIVITIES (25 minutes)
+-----------------------------
+Activity 1: Whole Class Teaching (10 minutes)
+- Use the display materials to teach key facts about ${topic}
+- Ask questions throughout to check understanding
+- Record key vocabulary on the board
+
+Activity 2: Group Work (15 minutes)
+- Children work in mixed-ability groups
+- Each group completes a task related to ${topic}
+- Groups share their findings with the class
+- Teacher circulates to support and challenge
+
+DIFFERENTIATION
+---------------
+Support: Provide sentence starters and key word banks
+Core: Children complete the main activity independently
+Challenge: Children extend their learning with additional questions or a creative task
+
+ASSESSMENT
+----------
+- Observe children during group work
+- Ask targeted questions during the plenary
+- Review completed work for understanding
+- Note any children who need additional support next lesson
+
+PLENARY / CLOSING (10 minutes)
+------------------------------
+1. Ask children to share one thing they learned about ${topic}
+2. Review key vocabulary
+3. Pose a challenge question for next time: "What would you like to find out about ${topic} next?"
+4. Praise good effort and participation
+
+EXTENSION IDEAS
+---------------
+- Create a display about ${topic}
+- Write a short paragraph about ${topic}
+- Make a poster or model related to ${topic}
+- Research a question about ${topic} at home`;
+
     res.json({ content });
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate lesson plan: ' + err.message });

@@ -1,0 +1,49 @@
+# Production deployment — works from a fresh GitHub clone
+# Usage: docker compose up -d
+# Required env: JWT_SECRET (generate with: openssl rand -hex 32)
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: rohans_resources
+      POSTGRES_USER: rohan
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-resources123}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rohan -d rohans_resources"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  backend:
+    build: ./backend
+    environment:
+      - DATABASE_URL=postgresql://rohan:${DB_PASSWORD:-resources123}@db:5432/rohans_resources
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
+      - PORT=8000
+      - NODE_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:8000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  pgdata:
